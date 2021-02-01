@@ -81,7 +81,7 @@ impl NetworkPlayer {
         }
     }
 
-    pub fn inform_of_result(&mut self, result: GameResult) -> () {
+    pub fn inform_of_result(&mut self, board: Board, result: GameResult) -> () {
         let control_code = match result {
             GameResult::WhiteCheckmates | GameResult::BlackResigns => {
                 if self.color == Color::White {
@@ -100,6 +100,8 @@ impl NetworkPlayer {
             _ => "D",
         };
         self.socket.write(control_code.as_bytes()).unwrap();
+        let fen = format!("{}", board);
+        self.socket.write(fen.as_bytes()).unwrap();
     }
 }
 

@@ -31,7 +31,7 @@ fn main() {
     print_board(&game.current_position());
     let result = game.result().unwrap();
     println!("{:?}", result);
-    white.inform_of_result(result);
+    white.inform_of_result(game.current_position(), result);
     drop(listener);
 }
 
