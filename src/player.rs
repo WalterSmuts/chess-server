@@ -10,9 +10,6 @@ use std::net::TcpStream;
 
 use rand::Rng;
 
-const MAX_FEN_SIZE: usize = 92;
-const MAX_OPPONENT_SIZE: usize = 6;
-
 pub trait Player {
     fn get_move(&mut self, board: &Board) -> ChessMove;
 }
@@ -55,9 +52,9 @@ impl Player for GreedyPlayer {
 impl Player for NetworkPlayer {
     fn get_move(&mut self, board: &Board) -> ChessMove {
         let fen = format!("{}", board);
-        self.socket.write(fen.as_bytes()).unwrap();
-        let mut data = [0 as u8; MAX_FEN_SIZE];
-        let size = self.socket.read(&mut data).unwrap();
+        write_lenth_prefixed(&mut self.socket, fen.as_bytes()).unwrap();
+        let mut data = [0 as u8; u8::MAX as usize];
+        let size = read_lenth_prefixed(&mut self.socket, &mut data).unwrap();
         let string = String::from_utf8(data[0..size].to_vec()).unwrap();
         let square_string1 = string[0..2].to_string();
         let square_string2 = string[2..4].to_string();
@@ -71,8 +68,8 @@ impl Player for NetworkPlayer {
 
 impl NetworkPlayer {
     pub fn get_opponent(&mut self) -> Box<dyn Player> {
-        let mut data = [0 as u8; MAX_OPPONENT_SIZE];
-        let size = self.socket.read(&mut data).unwrap();
+        let mut data = [0 as u8; u8::MAX as usize];
+        let size = read_lenth_prefixed(&mut self.socket, &mut data).unwrap();
         let opponent = String::from_utf8(data[0..size].to_vec()).unwrap();
         match opponent.as_str() {
             "Greedy" => Box::new(GreedyPlayer),
@@ -101,11 +98,23 @@ impl NetworkPlayer {
         };
 
 
-        self.socket.write(control_code.as_bytes()).unwrap();
+        write_lenth_prefixed(&mut self.socket, control_code.as_bytes()).unwrap();
         let fen = format!("{}", board);
-        self.socket.write(fen.as_bytes()).unwrap();
-        self.socket.write(format!("https://chess.waltersmuts.com/{}/{}.html", ip, filename).as_bytes()).unwrap();
+        write_lenth_prefixed(&mut self.socket, fen.as_bytes()).unwrap();
+        write_lenth_prefixed(&mut self.socket, format!("https://chess.waltersmuts.com/{}/{}.html", ip, filename).as_bytes()).unwrap();
     }
+}
+
+fn write_lenth_prefixed(socket: &mut TcpStream, buf: &[u8]) -> std::io::Result<usize> {
+    let len = vec!(buf.len() as u8);
+    socket.write(&len)?;
+    socket.write(buf)
+}
+
+fn read_lenth_prefixed(socket: &mut TcpStream, buf: &mut[u8]) -> std::io::Result<usize>{
+    let mut len = vec![0u8; 1];
+    socket.read(&mut len)?;
+    socket.read(buf)
 }
 
 fn board_score(board: &Board) -> i32 {
