@@ -1,8 +1,10 @@
-use chess::Board;
 use chess::Color;
 use chess::Game;
+use std::io::Write;
 use player::NetworkPlayer;
 use player::Player;
+use std::fs;
+use std::fs::File;
 use std::net::TcpListener;
 
 mod player;
@@ -10,7 +12,22 @@ mod player;
 fn main() {
     let listener = TcpListener::bind("0.0.0.0:3333").unwrap();
     println!("Server listening on port 3333");
-    let (sock1, _) = listener.accept().unwrap();
+    let (sock1, addr) = listener.accept().unwrap();
+    println!("Connection from {}", addr);
+    let dir = format!("/var/chess-web/{}", addr.ip());
+    if let Err(e) = fs::create_dir(&dir) {
+        println!("Couldn't create directory {}", e);
+    }
+
+    let filename = fs::read_dir(&dir).unwrap().map(|entry| {
+        let s: String = entry.unwrap().path().file_name().unwrap().to_str().unwrap().to_string();
+        let len = s.len();
+        let i: i32 = s[5..len-6].parse().unwrap();
+        return i
+    }).max().unwrap_or(0) + 1;
+    let filename = "game-".to_owned() + &filename.to_string() + &".board".to_owned();
+    let mut file = File::create(format!("{}/{}", dir, filename)).unwrap();
+
     let mut white = NetworkPlayer {
         socket: sock1,
         color: Color::White,
@@ -18,7 +35,7 @@ fn main() {
     let mut black = white.get_opponent();
     let mut game = Game::new();
     while game.result() == None {
-        print_board(&game.current_position());
+        file.write(format!("{}\n", game.current_position()).as_bytes()).unwrap();
         let m = match game.side_to_move() {
             Color::White => white.get_move(&game.current_position()),
             Color::Black => black.get_move(&game.current_position()),
@@ -28,40 +45,9 @@ fn main() {
             game.declare_draw();
         }
     }
-    print_board(&game.current_position());
+    file.write(format!("{}\n", game.current_position()).as_bytes()).unwrap();
     let result = game.result().unwrap();
     println!("{:?}", result);
-    white.inform_of_result(game.current_position(), result);
+    white.inform_of_result(game.current_position(), result, addr.ip().to_string(),filename);
     drop(listener);
-}
-
-pub fn print_board(board: &Board) {
-    println!("    a   b   c   d   e   f   g   h");
-    let fen = format!("{}", board);
-
-    println!("  {}", "-".repeat(33));
-    let mut i = 0;
-    print!("{} ", 8 - i);
-    print!("|");
-    for c in fen.chars() {
-        if c.is_numeric() {
-            print!("{}", "   |".repeat(c.to_digit(10).unwrap() as usize));
-        } else if c == '/' {
-            print!(" {}", 8 - i);
-            i = i + 1;
-            print!("\n");
-            println!("  {}", "-".repeat(33));
-            print!("{} ", 8 - i);
-            print!("|");
-        } else if c != ' ' {
-            print!(" {} |", c);
-        } else {
-            break;
-        }
-    }
-    print!(" {}", 8 - i);
-    print!("\n");
-    println!("  {}", "-".repeat(33));
-    println!("    a   b   c   d   e   f   g   h");
-    println!("{:?}'s turn to move.\n", board.side_to_move());
 }

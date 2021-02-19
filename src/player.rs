@@ -81,7 +81,7 @@ impl NetworkPlayer {
         }
     }
 
-    pub fn inform_of_result(&mut self, board: Board, result: GameResult) -> () {
+    pub fn inform_of_result(&mut self, board: Board, result: GameResult, ip: String,filename: String) -> () {
         let control_code = match result {
             GameResult::WhiteCheckmates | GameResult::BlackResigns => {
                 if self.color == Color::White {
@@ -99,9 +99,12 @@ impl NetworkPlayer {
             }
             _ => "D",
         };
+
+
         self.socket.write(control_code.as_bytes()).unwrap();
         let fen = format!("{}", board);
         self.socket.write(fen.as_bytes()).unwrap();
+        self.socket.write(format!("https://chess.waltersmuts.com/{}/{}.html", ip, filename).as_bytes()).unwrap();
     }
 }
 
