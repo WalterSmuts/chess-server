@@ -7,17 +7,29 @@ use chess::MoveGen;
 use chess::Square;
 use std::io::{Read, Write};
 use std::net::TcpStream;
+use std::net::SocketAddr;
 
 use rand::Rng;
 
+
 pub trait Player {
     fn get_move(&mut self, board: &Board) -> ChessMove;
+    fn inform_of_result(&mut self, board: Board, result: GameResult, filename: &String) -> () {
+        println!("Final board state {} result {:?} at {}", board, result, filename);
+    }
+}
+
+impl std::fmt::Debug for dyn Player {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{}", "LocalPlayer")
+    }
 }
 
 pub struct RandomPlayer;
 pub struct GreedyPlayer;
 pub struct NetworkPlayer {
     pub socket: TcpStream,
+    pub addr: SocketAddr,
     pub color: Color,
 }
 
@@ -64,21 +76,8 @@ impl Player for NetworkPlayer {
             None,
         )
     }
-}
 
-impl NetworkPlayer {
-    pub fn get_opponent(&mut self) -> Box<dyn Player> {
-        let mut data = [0 as u8; u8::MAX as usize];
-        let size = read_lenth_prefixed(&mut self.socket, &mut data).unwrap();
-        let opponent = String::from_utf8(data[0..size].to_vec()).unwrap();
-        match opponent.as_str() {
-            "Greedy" => Box::new(GreedyPlayer),
-            "Random" => Box::new(RandomPlayer),
-            _ => panic!("No such player exists"),
-        }
-    }
-
-    pub fn inform_of_result(&mut self, board: Board, result: GameResult, ip: String,filename: String) -> () {
+    fn inform_of_result(&mut self, board: Board, result: GameResult, filename: &String) -> () {
         let control_code = match result {
             GameResult::WhiteCheckmates | GameResult::BlackResigns => {
                 if self.color == Color::White {
@@ -97,11 +96,23 @@ impl NetworkPlayer {
             _ => "D",
         };
 
-
         write_lenth_prefixed(&mut self.socket, control_code.as_bytes()).unwrap();
         let fen = format!("{}", board);
         write_lenth_prefixed(&mut self.socket, fen.as_bytes()).unwrap();
-        write_lenth_prefixed(&mut self.socket, format!("https://chess.waltersmuts.com/{}/{}.html", ip, filename).as_bytes()).unwrap();
+        write_lenth_prefixed(&mut self.socket, format!("https://chess.waltersmuts.com/{}/{}.html", self.addr.ip(), filename).as_bytes()).unwrap();
+    }
+}
+
+impl NetworkPlayer {
+    pub fn get_opponent(&mut self) -> Box<dyn Player> {
+        let mut data = [0 as u8; u8::MAX as usize];
+        let size = read_lenth_prefixed(&mut self.socket, &mut data).unwrap();
+        let opponent = String::from_utf8(data[0..size].to_vec()).unwrap();
+        match opponent.as_str() {
+            "Greedy" => Box::new(GreedyPlayer),
+            "Random" => Box::new(RandomPlayer),
+            _ => panic!("No such player exists"),
+        }
     }
 }
 
