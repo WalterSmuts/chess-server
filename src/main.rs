@@ -6,13 +6,22 @@ use player::Player;
 use std::fs;
 use std::fs::File;
 use std::net::TcpListener;
+use std::net::TcpStream;
+use std::net::SocketAddr;
+use std::thread;
 
 mod player;
 
 fn main() {
     let listener = TcpListener::bind("0.0.0.0:3333").unwrap();
     println!("Server listening on port 3333");
-    let (sock1, addr) = listener.accept().unwrap();
+    loop {
+        let (socket, addr) = listener.accept().unwrap();
+        thread::spawn(move || { handle_connection(socket, addr); });
+    };
+}
+
+fn handle_connection(socket: TcpStream, addr: SocketAddr) {
     println!("Connection from {}", addr);
     let dir = format!("/var/chess-web/{}", addr.ip());
     if let Err(e) = fs::create_dir(&dir) {
@@ -29,7 +38,7 @@ fn main() {
     let mut file = File::create(format!("{}/{}", dir, filename)).unwrap();
 
     let mut white = NetworkPlayer {
-        socket: sock1,
+        socket,
         color: Color::White,
     };
     let mut black = white.get_opponent();
@@ -49,5 +58,4 @@ fn main() {
     let result = game.result().unwrap();
     println!("{:?}", result);
     white.inform_of_result(game.current_position(), result, addr.ip().to_string(),filename);
-    drop(listener);
 }
