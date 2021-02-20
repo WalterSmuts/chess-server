@@ -6,6 +6,7 @@ use chess::GameResult;
 use chess::MoveGen;
 use chess::Square;
 use std::io::{Read, Write};
+use std::io::ErrorKind;
 use std::net::TcpStream;
 use std::net::SocketAddr;
 
@@ -107,6 +108,24 @@ impl NetworkPlayer {
         let mut data = [0 as u8; u8::MAX as usize];
         let size = read_lenth_prefixed(&mut self.socket, &mut data).unwrap();
         String::from_utf8(data[0..size].to_vec()).unwrap()
+    }
+
+    pub fn alive(&self) -> bool {
+        let mut buf = [0; 0];
+        self.socket.set_nonblocking(true).unwrap();
+        let result = self.socket.peek(&mut buf);
+        self.socket.set_nonblocking(false).unwrap();
+        // Strangely enough, if the client dropped the connection we get a Ok here and if the
+        // client haven't responded yet, but is still connected, then we get an `WouldBlock`
+        match result {
+            Err(e) => {
+                match e.kind() {
+                    ErrorKind::WouldBlock => true,
+                    _ => false,
+                }
+            },
+            Ok(_) => false,
+        }
     }
 }
 

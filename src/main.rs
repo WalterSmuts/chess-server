@@ -50,6 +50,10 @@ fn handle_connection(socket: TcpStream, addr: SocketAddr) {
             let option = mutex_guard.take();
             match option {
                 Some(player) => {
+                    if !(*player).alive() {
+                        *mutex_guard = Some(player1);
+                        return
+                    }
                     player
                 },
                 None => {
