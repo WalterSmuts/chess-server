@@ -11,7 +11,6 @@ use std::net::SocketAddr;
 
 use rand::Rng;
 
-
 pub trait Player {
     fn get_move(&mut self, board: &Board) -> ChessMove;
     fn inform_of_result(&mut self, board: Board, result: GameResult, filename: &String) -> () {
@@ -104,15 +103,10 @@ impl Player for NetworkPlayer {
 }
 
 impl NetworkPlayer {
-    pub fn get_opponent(&mut self) -> Box<dyn Player> {
+    pub fn get_opponent(&mut self) -> String {
         let mut data = [0 as u8; u8::MAX as usize];
         let size = read_lenth_prefixed(&mut self.socket, &mut data).unwrap();
-        let opponent = String::from_utf8(data[0..size].to_vec()).unwrap();
-        match opponent.as_str() {
-            "Greedy" => Box::new(GreedyPlayer),
-            "Random" => Box::new(RandomPlayer),
-            _ => panic!("No such player exists"),
-        }
+        String::from_utf8(data[0..size].to_vec()).unwrap()
     }
 }
 
