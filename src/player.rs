@@ -65,9 +65,8 @@ impl Player for NetworkPlayer {
     fn get_move(&mut self, board: &Board) -> ChessMove {
         let fen = format!("{}", board);
         write_lenth_prefixed(&mut self.socket, fen.as_bytes()).unwrap();
-        let mut data = [0 as u8; u8::MAX as usize];
-        let size = read_lenth_prefixed(&mut self.socket, &mut data).unwrap();
-        let string = String::from_utf8(data[0..size].to_vec()).unwrap();
+        let data = read_lenth_prefixed(&mut self.socket);
+        let string = String::from_utf8(data).unwrap();
         let square_string1 = string[0..2].to_string();
         let square_string2 = string[2..4].to_string();
         ChessMove::new(
@@ -105,9 +104,8 @@ impl Player for NetworkPlayer {
 
 impl NetworkPlayer {
     pub fn get_opponent(&mut self) -> String {
-        let mut data = [0 as u8; u8::MAX as usize];
-        let size = read_lenth_prefixed(&mut self.socket, &mut data).unwrap();
-        String::from_utf8(data[0..size].to_vec()).unwrap()
+        let data = read_lenth_prefixed(&mut self.socket);
+        String::from_utf8(data).unwrap()
     }
 
     pub fn alive(&self) -> bool {
@@ -135,10 +133,12 @@ fn write_lenth_prefixed(socket: &mut TcpStream, buf: &[u8]) -> std::io::Result<u
     socket.write(buf)
 }
 
-fn read_lenth_prefixed(socket: &mut TcpStream, buf: &mut[u8]) -> std::io::Result<usize>{
+fn read_lenth_prefixed(socket: &mut TcpStream) -> Vec<u8> {
     let mut len = vec![0u8; 1];
-    socket.read(&mut len)?;
-    socket.read(buf)
+    socket.read(&mut len).unwrap();
+    let mut buf = [0 as u8; u8::MAX as usize];
+    socket.read(&mut buf).unwrap();
+    buf[0..len[0] as usize].to_vec()
 }
 
 fn board_score(board: &Board) -> i32 {
