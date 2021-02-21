@@ -4,7 +4,6 @@ use player::GreedyPlayer;
 use player::NetworkPlayer;
 use player::Player;
 use player::RandomPlayer;
-use std::fs;
 use std::net::SocketAddr;
 use std::net::TcpListener;
 use std::net::TcpStream;
@@ -31,13 +30,8 @@ fn main() {
 
 fn handle_connection(socket: TcpStream, addr: SocketAddr) {
     println!("Connection from {}", addr);
-    let dir = format!("/var/chess-web/{}", addr.ip());
-    if let Err(e) = fs::create_dir(&dir) {
-        println!("Couldn't create directory {}", e);
-    }
 
     let mut player1 = Box::new(NetworkPlayer {
-        addr,
         socket,
         color: Color::White,
     });
@@ -65,6 +59,6 @@ fn handle_connection(socket: TcpStream, addr: SocketAddr) {
         _ => panic!("No such player exists"),
     };
 
-    let mut game_coordinator = game_coordinator::GameCoordinator::new(player1, player2, &dir);
+    let mut game_coordinator = game_coordinator::GameCoordinator::new(player1, player2, &format!("{}", addr.ip()));
     game_coordinator.run();
 }

@@ -8,7 +8,6 @@ use chess::Square;
 use std::io::{Read, Write};
 use std::io::ErrorKind;
 use std::net::TcpStream;
-use std::net::SocketAddr;
 
 use rand::Rng;
 
@@ -29,7 +28,6 @@ pub struct RandomPlayer;
 pub struct GreedyPlayer;
 pub struct NetworkPlayer {
     pub socket: TcpStream,
-    pub addr: SocketAddr,
     pub color: Color,
 }
 
@@ -98,7 +96,7 @@ impl Player for NetworkPlayer {
         write_lenth_prefixed(&mut self.socket, control_code.as_bytes()).unwrap();
         let fen = format!("{}", board);
         write_lenth_prefixed(&mut self.socket, fen.as_bytes()).unwrap();
-        write_lenth_prefixed(&mut self.socket, format!("https://chess.waltersmuts.com/{}/{}.html", self.addr.ip(), filename).as_bytes()).unwrap();
+        write_lenth_prefixed(&mut self.socket, format!("https://chess.waltersmuts.com/{}.html", filename).as_bytes()).unwrap();
     }
 }
 

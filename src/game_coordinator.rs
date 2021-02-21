@@ -3,6 +3,7 @@ use chess::Game;
 use std::fs::File;
 use crate::player::Player;
 use std::io::Write;
+use std::fs;
 
 pub struct GameCoordinator {
      player1: Box<dyn Player>,
@@ -13,8 +14,13 @@ pub struct GameCoordinator {
 }
 
 impl GameCoordinator {
-    pub fn new(player1: Box<dyn Player>, player2: Box<dyn Player>, dir: &String) -> GameCoordinator {
-        let filename = std::fs::read_dir(dir).unwrap().map(|entry| {
+    pub fn new(player1: Box<dyn Player>, player2: Box<dyn Player>, ip: &String) -> GameCoordinator {
+        let dir = format!("/var/chess-web/{}", ip);
+        if let Err(e) = fs::create_dir(&dir) {
+            println!("Couldn't create directory {}", e);
+        }
+
+        let filename = std::fs::read_dir(&dir).unwrap().map(|entry| {
             let s: String = entry.unwrap().path().file_name().unwrap().to_str().unwrap().to_string();
             let len = s.len();
             let i: i32 = s[5..len-6].parse().unwrap();
@@ -22,6 +28,7 @@ impl GameCoordinator {
         }).max().unwrap_or(0) + 1;
         let filename = "game-".to_owned() + &filename.to_string() + &".board".to_owned();
         let file = File::create(format!("{}/{}", dir, filename)).unwrap();
+        let filename = format!("{}/{}", ip, filename);
 
         GameCoordinator {
             game: Game::new(),
