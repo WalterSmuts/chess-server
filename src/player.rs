@@ -22,7 +22,7 @@ pub trait Player {
 }
 
 impl std::fmt::Debug for dyn Player {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", "LocalPlayer")
     }
 }
