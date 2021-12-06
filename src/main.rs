@@ -46,19 +46,20 @@ fn handle_connection(socket: TcpStream, addr: SocketAddr) {
                 Some(player) => {
                     if !(*player).alive() {
                         *mutex_guard = Some(player1);
-                        return
+                        return;
                     }
                     player
-                },
+                }
                 None => {
                     *mutex_guard = Some(player1);
-                    return
+                    return;
                 }
             }
         }
         _ => panic!("No such player exists"),
     };
 
-    let mut game_coordinator = game_coordinator::GameCoordinator::new(player1, player2, &format!("{}", addr.ip()));
+    let mut game_coordinator =
+        game_coordinator::GameCoordinator::new(player1, player2, &format!("{}", addr.ip()));
     game_coordinator.run();
 }

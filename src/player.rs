@@ -5,8 +5,8 @@ use chess::Color;
 use chess::GameResult;
 use chess::MoveGen;
 use chess::Square;
-use std::io::{Read, Write};
 use std::io::ErrorKind;
+use std::io::{Read, Write};
 use std::net::TcpStream;
 
 use rand::Rng;
@@ -14,7 +14,10 @@ use rand::Rng;
 pub trait Player {
     fn get_move(&mut self, board: &Board) -> ChessMove;
     fn inform_of_result(&mut self, board: Board, result: GameResult, filename: &String) -> () {
-        println!("Final board state {} result {:?} at {}", board, result, filename);
+        println!(
+            "Final board state {} result {:?} at {}",
+            board, result, filename
+        );
     }
 }
 
@@ -96,7 +99,11 @@ impl Player for NetworkPlayer {
         write_lenth_prefixed(&mut self.socket, control_code.as_bytes()).unwrap();
         let fen = format!("{}", board);
         write_lenth_prefixed(&mut self.socket, fen.as_bytes()).unwrap();
-        write_lenth_prefixed(&mut self.socket, format!("https://chess.waltersmuts.com/{}.html", filename).as_bytes()).unwrap();
+        write_lenth_prefixed(
+            &mut self.socket,
+            format!("https://chess.waltersmuts.com/{}.html", filename).as_bytes(),
+        )
+        .unwrap();
     }
 }
 
@@ -114,11 +121,9 @@ impl NetworkPlayer {
         // Strangely enough, if the client dropped the connection we get a Ok here and if the
         // client haven't responded yet, but is still connected, then we get an `WouldBlock`
         match result {
-            Err(e) => {
-                match e.kind() {
-                    ErrorKind::WouldBlock => true,
-                    _ => false,
-                }
+            Err(e) => match e.kind() {
+                ErrorKind::WouldBlock => true,
+                _ => false,
             },
             Ok(_) => false,
         }
@@ -126,7 +131,7 @@ impl NetworkPlayer {
 }
 
 fn write_lenth_prefixed(socket: &mut TcpStream, buf: &[u8]) -> std::io::Result<usize> {
-    let len = vec!(buf.len() as u8);
+    let len = vec![buf.len() as u8];
     socket.write(&len)?;
     socket.write(buf)
 }
