@@ -33,12 +33,12 @@ impl GameCoordinator {
                     .to_string();
                 let len = s.len();
                 let i: i32 = s[5..len - 6].parse().unwrap();
-                return i;
+                i
             })
             .max()
             .unwrap_or(0)
             + 1;
-        let filename = "game-".to_owned() + &filename.to_string() + &".board".to_owned();
+        let filename = "game-".to_owned() + &filename.to_string() + ".board";
         let file = File::create(format!("{}/{}", dir, filename)).unwrap();
         let filename = format!("{}/{}", ip, filename);
 

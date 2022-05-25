@@ -13,7 +13,7 @@ use rand::Rng;
 
 pub trait Player {
     fn get_move(&mut self, board: &Board) -> ChessMove;
-    fn inform_of_result(&mut self, board: Board, result: GameResult, filename: &String) -> () {
+    fn inform_of_result(&mut self, board: Board, result: GameResult, filename: &String) {
         println!(
             "Final board state {} result {:?} at {}",
             board, result, filename
@@ -23,7 +23,7 @@ pub trait Player {
 
 impl std::fmt::Debug for dyn Player {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", "LocalPlayer")
+        write!(f, "LocalPlayer")
     }
 }
 
@@ -36,18 +36,18 @@ pub struct NetworkPlayer {
 
 impl Player for RandomPlayer {
     fn get_move(&mut self, board: &Board) -> ChessMove {
-        let mut moves = MoveGen::new_legal(&board);
+        let mut moves = MoveGen::new_legal(board);
         let mut rng = rand::thread_rng();
-        let m = moves.nth(rng.gen_range(0, moves.len())).unwrap();
-        return m;
+
+        moves.nth(rng.gen_range(0, moves.len())).unwrap()
     }
 }
 
 impl Player for GreedyPlayer {
     fn get_move(&mut self, board: &Board) -> ChessMove {
-        let mut moves = MoveGen::new_legal(&board);
+        let mut moves = MoveGen::new_legal(board);
         let mut greedy_move = moves.next().unwrap();
-        for m in moves.into_iter() {
+        for m in moves {
             let test_board = board.make_move_new(m);
             let greedy_board = board.make_move_new(greedy_move);
             let better = match board.side_to_move() {
@@ -58,7 +58,7 @@ impl Player for GreedyPlayer {
                 greedy_move = m;
             }
         }
-        return greedy_move;
+        greedy_move
     }
 }
 
@@ -77,7 +77,7 @@ impl Player for NetworkPlayer {
         )
     }
 
-    fn inform_of_result(&mut self, board: Board, result: GameResult, filename: &String) -> () {
+    fn inform_of_result(&mut self, board: Board, result: GameResult, filename: &String) {
         let control_code = match result {
             GameResult::WhiteCheckmates | GameResult::BlackResigns => {
                 if self.color == Color::White {
@@ -139,7 +139,7 @@ fn write_lenth_prefixed(socket: &mut TcpStream, buf: &[u8]) -> std::io::Result<u
 fn read_lenth_prefixed(socket: &mut TcpStream) -> Vec<u8> {
     let mut len = vec![0u8; 1];
     socket.read(&mut len).unwrap();
-    let mut buf = [0 as u8; u8::MAX as usize];
+    let mut buf = [0_u8; u8::MAX as usize];
     socket.read(&mut buf).unwrap();
     buf[0..len[0] as usize].to_vec()
 }
@@ -155,20 +155,20 @@ fn board_score(board: &Board) -> i32 {
     let mut score: i32 = 0;
     for c in fen.chars() {
         match c {
-            'p' => score = score - 1,
-            'n' => score = score - 3,
-            'b' => score = score - 3,
-            'r' => score = score - 5,
-            'q' => score = score - 9,
-            'P' => score = score + 1,
-            'N' => score = score + 3,
-            'B' => score = score + 3,
-            'R' => score = score + 5,
-            'Q' => score = score + 9,
+            'p' => score -= 1,
+            'n' => score -= 3,
+            'b' => score -= 3,
+            'r' => score -= 5,
+            'q' => score -= 9,
+            'P' => score += 1,
+            'N' => score += 3,
+            'B' => score += 3,
+            'R' => score += 5,
+            'Q' => score += 9,
             ' ' => break,
             _ => (),
         }
     }
-    score = score * 100 + MoveGen::new_legal(&board).len() as i32;
+    score = score * 100 + MoveGen::new_legal(board).len() as i32;
     score
 }
