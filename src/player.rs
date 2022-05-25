@@ -8,6 +8,7 @@ use chess::Square;
 use std::io::ErrorKind;
 use std::io::{Read, Write};
 use std::net::TcpStream;
+use std::str::FromStr;
 
 use rand::Rng;
 
@@ -71,8 +72,8 @@ impl Player for NetworkPlayer {
         let square_string1 = string[0..2].to_string();
         let square_string2 = string[2..4].to_string();
         ChessMove::new(
-            Square::from_string(square_string1).unwrap(),
-            Square::from_string(square_string2).unwrap(),
+            Square::from_str(&square_string1).unwrap(),
+            Square::from_str(&square_string2).unwrap(),
             None,
         )
     }
@@ -121,26 +122,23 @@ impl NetworkPlayer {
         // Strangely enough, if the client dropped the connection we get a Ok here and if the
         // client haven't responded yet, but is still connected, then we get an `WouldBlock`
         match result {
-            Err(e) => match e.kind() {
-                ErrorKind::WouldBlock => true,
-                _ => false,
-            },
+            Err(e) => matches!(e.kind(), ErrorKind::WouldBlock),
             Ok(_) => false,
         }
     }
 }
 
-fn write_lenth_prefixed(socket: &mut TcpStream, buf: &[u8]) -> std::io::Result<usize> {
+fn write_lenth_prefixed(socket: &mut TcpStream, buf: &[u8]) -> std::io::Result<()> {
     let len = vec![buf.len() as u8];
-    socket.write(&len)?;
-    socket.write(buf)
+    socket.write_all(&len)?;
+    socket.write_all(buf)
 }
 
 fn read_lenth_prefixed(socket: &mut TcpStream) -> Vec<u8> {
     let mut len = vec![0u8; 1];
-    socket.read(&mut len).unwrap();
+    socket.read_exact(&mut len).unwrap();
     let mut buf = [0_u8; u8::MAX as usize];
-    socket.read(&mut buf).unwrap();
+    socket.read_exact(&mut buf).unwrap();
     buf[0..len[0] as usize].to_vec()
 }
 

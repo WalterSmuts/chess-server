@@ -55,7 +55,7 @@ impl GameCoordinator {
         let mut file = &self.file;
 
         while self.game.result() == None {
-            file.write(format!("{}\n", self.game.current_position()).as_bytes())
+            file.write_all(format!("{}\n", self.game.current_position()).as_bytes())
                 .unwrap();
             let m = match self.game.side_to_move() {
                 Color::White => self.player1.get_move(&self.game.current_position()),
@@ -66,7 +66,7 @@ impl GameCoordinator {
                 self.game.declare_draw();
             }
         }
-        file.write(format!("{}\n", self.game.current_position()).as_bytes())
+        file.write_all(format!("{}\n", self.game.current_position()).as_bytes())
             .unwrap();
         let result = self.game.result().unwrap();
         println!("{:?}", result);
