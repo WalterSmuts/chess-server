@@ -4,6 +4,7 @@ use chess::ChessMove;
 use chess::Color;
 use chess::GameResult;
 use chess::MoveGen;
+use chess::Piece;
 use chess::Square;
 use std::io::ErrorKind;
 use std::io::{Read, Write};
@@ -63,6 +64,18 @@ impl Player for GreedyPlayer {
     }
 }
 
+fn parse_piece(c: char) -> Piece {
+    match c {
+        'p' | 'P' => Piece::Pawn,
+        'k' | 'K' => Piece::Knight,
+        'b' | 'B' => Piece::Bishop,
+        'r' | 'R' => Piece::Rook,
+        'q' | 'Q' => Piece::Queen,
+        'k' | 'K' => Piece::King,
+        _ => panic!("Cannot parse {c} as piece"),
+    }
+}
+
 impl Player for NetworkPlayer {
     fn get_move(&mut self, board: &Board) -> ChessMove {
         let fen = format!("{}", board);
@@ -71,10 +84,11 @@ impl Player for NetworkPlayer {
         let string = String::from_utf8(data).unwrap();
         let square_string1 = string[0..2].to_string();
         let square_string2 = string[2..4].to_string();
+        let promotion = string.chars().nth(5).map(parse_piece);
         ChessMove::new(
             Square::from_str(&square_string1).unwrap(),
             Square::from_str(&square_string2).unwrap(),
-            None,
+            promotion,
         )
     }
 
